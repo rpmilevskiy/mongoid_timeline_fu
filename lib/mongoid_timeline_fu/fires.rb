@@ -10,12 +10,15 @@ module MongoidTimelineFu
       end
     
       opts[:subject] = :self unless opts.has_key?(:subject)
+      
+      on = opts.delete(:on)
+      _if = opts.delete(:if)
     
-      method_name = :"fire_#{event_type}_after_#{opts[:on]}"
+      type = opts.delete(:type) || "TimelineEvent"
+
+      method_name = :"fire_#{event_type}_after_#{on}"
       define_method(method_name) do
-        default_fields = ["_id", "created_at", "event_type", "actor_type", "actor_id", "subject_type", "subject_id", "secondary_subject_type", "secondary_subject_id"]
-        additional_fields = (TimelineEvent.fields.keys - default_fields).collect &:to_sym
-        create_options = ([:actor, :subject, :secondary_subject] + additional_fields).inject({}) do |memo, sym|
+        create_options = opts.keys.inject({}) do |memo, sym|
           if opts[sym]
             if opts[sym].respond_to?(:call)
               memo[sym] = opts[sym].call(self)
@@ -29,10 +32,11 @@ module MongoidTimelineFu
         end
         create_options[:event_type] = event_type.to_s
     
-        TimelineEvent.create!(create_options)
+        type.constantize.create!(create_options)
       end
     
-      send(:"after_#{opts[:on]}", method_name, :if => opts[:if])
+      send(:"after_#{on}", method_name, :if => _if)
     end
   end
 end
+
