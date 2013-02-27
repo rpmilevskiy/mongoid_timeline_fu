@@ -13,7 +13,9 @@ module MongoidTimelineFu
     
       method_name = :"fire_#{event_type}_after_#{opts[:on]}"
       define_method(method_name) do
-        create_options = [:actor, :subject, :secondary_subject].inject({}) do |memo, sym|
+        default_fields = ["_id", "created_at", "event_type", "actor_type", "actor_id", "subject_type", "subject_id", "secondary_subject_type", "secondary_subject_id"]
+        additional_fields = (TimelineEvent.fields.keys - default_fields).collect &:to_sym
+        create_options = ([:actor, :subject, :secondary_subject] + additional_fields).inject({}) do |memo, sym|
           if opts[sym]
             if opts[sym].respond_to?(:call)
               memo[sym] = opts[sym].call(self)
