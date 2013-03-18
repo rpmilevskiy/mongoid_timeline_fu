@@ -37,6 +37,30 @@ module MongoidTimelineFu
     
       send(:"after_#{on}", method_name, :if => _if)
     end
+     
+    def fires_manually(event_type, opts)
+      opts[:subject] = :self unless opts.has_key?(:subject)
+      type = opts.delete(:type) || "TimelineEvent"
+
+      method_name = :"fire_#{event_type}"
+      define_method(method_name) do |params|
+        create_options = opts.keys.inject({}) do |memo, sym|
+          if opts[sym]
+            if self.respond_to?(opts[sym])
+              memo[sym] = send(opts[sym])
+            elsif opts[sym] == :self
+              memo[sym] = self
+            else
+              memo[sym] = params[opts[sym]]
+            end
+          end
+          memo
+        end
+        create_options[:event_type] = event_type.to_s
+
+        type.constantize.create!(create_options)
+      end
+    end
   end
 end
 
